@@ -29,13 +29,13 @@ const KEY='miJornada.v1';let data=JSON.parse(localStorage.getItem(KEY)||'null')|
 const $=id=>document.getElementById(id);const pad=n=>String(n).padStart(2,'0');
 function save(){localStorage.setItem(KEY,JSON.stringify(data));render()}
 function mins(t){let [h,m]=t.split(':').map(Number);return h*60+m}function hm(m){m=Math.round(m);let sign=m<0?'-':'';m=Math.abs(m);return sign+pad(Math.floor(m/60))+':'+pad(m%60)}
-function dateKey(d=new Date()){return d.toISOString().slice(0,10)}
+function dateKey(d=new Date()){let y=d.getFullYear(),m=pad(d.getMonth()+1),day=pad(d.getDate());return `${y}-${m}-${day}`}
 function fmtDate(k){return new Date(k+'T12:00').toLocaleDateString('es-ES',{weekday:'short',day:'2-digit',month:'2-digit'})}
 function dayPunches(k){return data.punches.filter(x=>x.date===k).sort((a,b)=>a.time.localeCompare(b.time)||a.id-b.id)}
 function workedDay(k){let p=dayPunches(k),total=0;for(let i=0;i<p.length-1;i+=2)if(p[i].type==='in'&&p[i+1].type==='out')total+=mins(p[i+1].time)-mins(p[i].time);return total}
 function openDay(k){let p=dayPunches(k);return p.length&&p[p.length-1].type==='in'}
 function rangeDays(kind){let now=new Date();let start=new Date(now.getFullYear(),now.getMonth(),now.getDate());if(kind==='week'){let day=start.getDay()||7;start.setDate(start.getDate()-day+1)}else if(kind==='month')start.setDate(1);let arr=[];let end=kind==='month'?new Date(now.getFullYear(),now.getMonth()+1,0):kind==='week'?new Date(start.getFullYear(),start.getMonth(),start.getDate()+6):start; if(kind==='all'){let keys=[...new Set(data.punches.map(x=>x.date))].sort();return keys}for(let d=new Date(start);d<=end;d.setDate(d.getDate()+1))arr.push(dateKey(d));return arr}
-function plannedFor(k){return data.settings.hours}
+function plannedFor(k){let d=new Date(k+'T12:00').getDay();return (d===0||d===6)?0:data.settings.hours}
 function esc(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c]))}
 function render(){let now=new Date(),k=dateKey(now);$('todayDate').textContent=now.toLocaleDateString('es-ES',{weekday:'long',day:'numeric',month:'long',year:'numeric'});$('clock').textContent=now.toLocaleTimeString('es-ES',{hour:'2-digit',minute:'2-digit'});let open=openDay(k);$('status').textContent=open?'Jornada abierta: falta registrar la salida':'Jornada cerrada';let w=workedDay(k),bal=w-plannedFor(k);$('worked').textContent=hm(w);$('planned').textContent=hm(plannedFor(k));$('balance').textContent=(bal>=0?'+':'')+hm(bal);$('balance').className='balance '+(bal>0?'pos':bal<0?'neg':'');$('mainBtn').textContent=open?'Registrar salida':'Registrar entrada';$('mainBtn').className='big '+(open?'exit':'');$('mainBtn').onclick=()=>togglePunch();renderToday();renderSummary();renderHistory();loadSettings()}
 function togglePunch(){let k=dateKey(),p=dayPunches(k),type=openDay(k)?'out':'in';data.punches.push({id:Date.now(),date:k,time:new Date().toTimeString().slice(0,5),type});save()}
